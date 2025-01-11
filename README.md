@@ -1,6 +1,6 @@
 # python-rag-pipeline
 
-This project implements a lightweight Retrieval-Augmented Generation (RAG) pipeline using Hugging Face Transformers, scikit-learn, python, and PyTorch. The pipeline retrieves relevant context from a corpus and generates responses based on the context and query.
+This project implements a lightweight Retrieval-Augmented Generation (RAG) pipeline using Hugging Face Transformers, scikit-learn, Python, and PyTorch. The pipeline retrieves relevant context from a corpus and generates responses based on the context and query.
 
 
 See the steps below to get the project intialised, configured, and dependacies installed.
