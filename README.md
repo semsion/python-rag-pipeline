@@ -29,7 +29,7 @@ See below to get the project intialised, configured, and the dependencies instal
 
 3. Install the necessary dependencies:
     ```sh
-    pip install transformers scikit-learn torch
+    pip install transformers scikit-learn torch sentence-transformers
 
 ## Usage
 
