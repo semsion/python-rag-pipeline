@@ -7,7 +7,7 @@ python3 -m venv rag_env
 source rag_env/bin/activate
 
 # Only run this command once initially to set up the environment
-pip install transformers scikit-learn torch
+pip install transformers scikit-learn torch sentence-transformers
 
 # Run this command to run the RAG pipeline
 python lightweight_rag.py
