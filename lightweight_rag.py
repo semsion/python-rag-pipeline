@@ -43,6 +43,9 @@ def clean_output(text):
     return text.strip()
 
 def truncate_at_sentence_end(text, max_tokens):
+    if not text:
+        return "No valid answer generated. Run script again."
+
     # Split into sentences more accurately
     sentences = re.split(r'([.!?])\s+', text)
     
@@ -63,6 +66,9 @@ def truncate_at_sentence_end(text, max_tokens):
         else:
             break
             
+    if not truncated_text:
+        return "No complete sentences found in response. Run script again."
+
     return truncated_text.strip()
 
 # Full RAG pipeline
