@@ -125,9 +125,6 @@ def lightweight_rag(query):
         print(f"Error generating response: {str(e)}")
         return "An error occurred while generating the response."
 
-# Fixed query
-query = "What is RAG?"
-
-# Loop to continuously run the same query
-while True:
-    lightweight_rag(query)
+# Test query
+query = "What is AI?"
+lightweight_rag(query)
