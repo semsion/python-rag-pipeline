@@ -38,3 +38,4 @@ Run the RAG pipeline with a sample query:
 python lightweight_rag.py
 ```
 
+You may receive an OpenSSL warning upon running the script. This can be safely ignored, or you can update to a different Python distribution that supports the required version of OpenSSL, recompile Python, or install an older version of urllib3.
