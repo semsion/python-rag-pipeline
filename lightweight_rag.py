@@ -2,7 +2,7 @@ import numpy as np
 import re
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-from transformers import AutoTokenizer, pipeline
+from transformers import AutoTokenizer, pipeline, GPT2LMHeadModel
 
 # Initialize the sentence-transformers model
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')  # Compact and fast for embeddings
@@ -26,100 +26,108 @@ def retrieve(query, corpus, corpus_embeddings, threshold=0.5):
         return "No relevant context found."
     return corpus[best_match_idx]
 
-# Check if text is a properly formatted complete sentence
-def is_complete_sentence(text):
-    if not text:
-        return False
-    first_word = text.split()[0] if text.split() else ''
-    has_capital = first_word and first_word[0].isupper()
-    has_end_punct = text.rstrip()[-1] in '.!?'
-    return has_capital and has_end_punct
+# Clean the output to normalize spaces and punctuation
+def clean_output(text):
+    # Find and keep only content after first "Answer:"
+    answer_parts = text.split("Answer:", 1)
+    if len(answer_parts) > 1:
+        text = answer_parts[1]
+    
+    # Remove any subsequent Question/Answer patterns
+    text = re.sub(r'Question:.*?Answer:', '', text, flags=re.DOTALL|re.IGNORECASE)
+    text = re.sub(r'Question:.*?$', '', text, flags=re.DOTALL|re.IGNORECASE)
+    text = re.sub(r'Answer:', '', text, flags=re.IGNORECASE)
+    
+    # Clean up spaces
+    text = re.sub(r'\s+', ' ', text)
+    return text.strip()
+
+def truncate_at_sentence_end(text, max_tokens):
+    # Split into sentences more accurately
+    sentences = re.split(r'([.!?])\s+', text)
+    
+    # Rejoin sentences with their punctuation
+    complete_sentences = []
+    for i in range(0, len(sentences)-1, 2):
+        if i+1 < len(sentences):
+            complete_sentences.append(sentences[i] + sentences[i+1])
+    
+    truncated_text = ''
+    token_count = 0
+    
+    for sentence in complete_sentences:
+        sentence_tokens = len(sentence.split())
+        if token_count + sentence_tokens <= max_tokens:
+            truncated_text += sentence + ' '
+            token_count += sentence_tokens
+        else:
+            break
+            
+    return truncated_text.strip()
 
 # Full RAG pipeline
 def lightweight_rag(query):
+    # Define the maximum number of tokens to generate
+    max_new_tokens = 150
+
     # Retrieve the most relevant context
     context = retrieve(query, corpus, corpus_embeddings)
 
-        # Initialize tokenizer
-    tokenizer = AutoTokenizer.from_pretrained('distilgpt2')
+    # Initialize tokenizer and model
+    tokenizer = AutoTokenizer.from_pretrained('gpt2-large')
+    model = GPT2LMHeadModel.from_pretrained('gpt2-large')
 
-    # Generate a response using distilgpt2
+    # Generate a response using GPT-2 Large
     generator = pipeline(
         'text-generation',
-        model='distilgpt2',
-        tokenizer=tokenizer, 
+        model=model,
+        tokenizer=tokenizer,
         do_sample=True,
-        temperature=0.4,
-        top_p=0.92,
-        top_k=40,
-        max_length=100,
+        temperature=0.7,
+        top_p=0.9,
+        top_k=50,
         pad_token_id=50256
     )
     
     try:
         # Generate response
         response = generator(
-            f"Context: {context}\nQuestion: {query}\nGive a clear, direct answer:", 
-            max_length=100,
-            do_sample=True,
+            f"Context: {context}\nQuestion: {query}\nAnswer:", 
+            max_new_tokens=max_new_tokens,
             truncation=True,
             num_return_sequences=1,
             repetition_penalty=1.2,
-            length_penalty=1.0
+            length_penalty=1.0,
+            eos_token_id=50256
         )
         
-        # Get the full generated text
+        # Get the generated text
         generated_text = response[0]['generated_text']
         
-        # Answer extraction
-        answer_start = generated_text.find("answer:") + len("answer:")
-        if answer_start < len("answer:"):  # If "answer:" not found
-            answer_start = generated_text.find(query) + len(query)
-            
-        # Remove everything after the first question mark or period
-        end_markers = ["?", "Question:", "Context:"]
-        end_positions = [generated_text.find(marker, answer_start) for marker in end_markers]
-        end_positions = [pos for pos in end_positions if pos != -1]
-        
-        if end_positions:
-            trimmed_text = generated_text[answer_start:min(end_positions)].strip()
-        else:
-            trimmed_text = generated_text[answer_start:].strip()
-
-        # Sentence cleaning
-        sentences = [s.strip() for s in re.split(r'[.!?]+', trimmed_text) if s.strip()]
-        unique_sentences = []
-        for sentence in sentences:
-            s_norm = sentence.lower()
-            if s_norm and s_norm not in [u.lower() for u in unique_sentences]:
-                unique_sentences.append(sentence)
-
-        # Remove consecutive repeated words
-        words = ' '.join(unique_sentences).split()
-        deduped_words = []
-        for w in words:
-            if not deduped_words or w.lower() != deduped_words[-1].lower():
-                deduped_words.append(w)
-
-        cleaned_answer = ' '.join(deduped_words).strip()
-        
-        if not cleaned_answer:
+        # Extract the answer part
+        answer_start = generated_text.find("Answer:") + len("Answer:")
+        if answer_start < len("Answer:"):
             return "Could not generate a valid answer."
         
-        # Ensure complete sentence
-        if cleaned_answer and not is_complete_sentence(cleaned_answer):
-            cleaned_answer = cleaned_answer[0].upper() + cleaned_answer[1:]
-            if cleaned_answer[-1] not in '.!?':
-                cleaned_answer += '.'
+        answer = generated_text[answer_start:].strip()
+
+        # Basic cleaning
+        cleaned_answer = clean_output(answer)
+        
+        # Truncate at the last complete sentence
+        truncated_answer = truncate_at_sentence_end(cleaned_answer, max_new_tokens)
 
         print("Question:", query)
         print("Context:", context)
-        print("Answer:", cleaned_answer)
+        print("Answer:", truncated_answer)
         
     except Exception as e:
         print(f"Error generating response: {str(e)}")
         return "An error occurred while generating the response."
 
-# Test query
-query = "What is AI?"
-lightweight_rag(query)
+# Fixed query
+query = "What is RAG?"
+
+# Loop to continuously run the same query
+while True:
+    lightweight_rag(query)
