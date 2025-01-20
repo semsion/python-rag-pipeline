@@ -2,8 +2,8 @@
 
 This project implements a lightweight Retrieval-Augmented Generation (RAG) pipeline using Hugging Face Transformers (powered by PyTorch), scikit-learn, and Python. The pipeline:
 - Retrieves relevant context from a corpus using semantic similarity
-- Generates coherent responses using distilGPT2
-- Ensures complete, well-formatted sentences (currently testing)
+- Generates coherent responses using GPT-2 Large
+- Ensures complete, well-formatted sentences
 - Removes duplicate content and repeated phrases
 - Handles errors gracefully
 
