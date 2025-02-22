@@ -33,7 +33,7 @@ See below to get the project intialised, configured, and the dependencies instal
 
 ## Usage
 
-Run the RAG pipeline with a sample query:
+Run the RAG pipeline with a sample query (the query is hard coded at the bottom of the file):
 ```sh
 python lightweight_rag.py
 ```
