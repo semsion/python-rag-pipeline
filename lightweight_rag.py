@@ -5,6 +5,7 @@ import time
 import threading
 import itertools
 import argparse
+import torch
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from transformers import (
@@ -20,10 +21,20 @@ DEVICE_MODE = "auto"  # options: "auto", "mps", "cuda"
 
 def get_device_map(mode: str):
     if mode == "mps":
-        return {"": "mps"}   # Apple GPU
-    if mode == "cuda":
-        return {"": "cuda"}  # Nvidia GPU
-    return "auto"            # auto-select (MPS on Apple, CUDA on Nvidia, CPU fallback)
+        device_map = {"": "mps"}    # Apple GPU
+    elif mode == "cuda":
+        device_map = {"": "cuda"}   # Nvidia GPU
+    elif mode == "auto":
+        if torch.cuda.is_available():
+            device_map = {"": "cuda"}
+        elif torch.backends.mps.is_available():
+            device_map = {"": "mps"}
+        else:
+            device_map = "cpu"
+    else:
+        device_map = "auto"
+    print(f"Selected device map: {device_map}")
+    return device_map
 
 # Initialize the sentence-transformers model
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')  # Compact and fast for embeddings
