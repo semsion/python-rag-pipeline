@@ -44,6 +44,3 @@ export PYTORCH_ENABLE_MPS_FALLBACK=1
 - If you see “gated repo” errors, request access on the model page or switch to an ungated model.
 - The CLI shows a spinner during generation and prints inference time.
 ```// filepath: /Users/semsion/Documents/Projects/Python/RAG/20251209/python-rag-pipeline/README.md
-
-
-
